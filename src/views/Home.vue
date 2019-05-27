@@ -152,7 +152,7 @@ export default {
       this.search(text, that);
     },
     search: _.debounce((text, that) => {
-      axios.get(`http://localhost:8001/api/${text}`).then(response => {
+      axios.get(`/api/${text}`).then(response => {
         that.filteredSuggestions = [
           {
             data: response.data.data
@@ -193,7 +193,7 @@ export default {
     },
     current() {
       axios
-        .get("http://localhost:8001/api/current/", {
+        .get("/api/current/", {
           params: {
             lat: this.selected.lat,
             lon: this.selected.lon
@@ -208,7 +208,7 @@ export default {
     },
     predict() {
       axios
-        .get("http://localhost:8001/api/predict/", {
+        .get("/api/predict/", {
           params: {
             lat: this.selected.lat,
             lon: this.selected.lon
