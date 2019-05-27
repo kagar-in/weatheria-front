@@ -4,11 +4,20 @@
       <div class="container">
         <form action="#" class="find-location">
           <vue-autosuggest
-            :suggestions="filteredOptions"
-            :on-selected="onSelected"
-            :limit="10"
-            :input-props="inputProps"
-          ></vue-autosuggest>
+            ref="autosuggest"
+            @click="clickHandler"
+            @keydown.tab.prevent="tabHandler"
+            @selected="selectHandler"
+            :suggestions="filteredSuggestions"
+            :inputProps="inputProps"
+            :getSuggestionValue="getSuggestionValue"
+          >
+            <template slot-scope="{ suggestion }">
+              <div>
+                <b>{{ suggestion.item.place }}</b>
+              </div>
+            </template>
+          </vue-autosuggest>
           <input type="submit" value="Find" />
         </form>
       </div>
@@ -19,57 +28,65 @@
 <script>
 import axios from "axios";
 import _ from "lodash";
+var moment = require("moment");
 export default {
   name: "search",
   data() {
     return {
-      selected: "",
-      options: [
-        {
-          data: []
-        }
-      ],
-      filteredOptions: [],
+      suggestions: [],
+      filteredSuggestions: [],
+      selected: null,
       inputProps: {
         id: "autosuggest__input",
-        onInputChange: this.onInputChange,
-        placeholder: "Input Place Name"
-      },
-      limit: 10,
-      raw: {}
+        onInputChange: this.fetchResults,
+        placeholder: "Masukkan nama kota",
+        class: "ddd"
+      }
     };
   },
   methods: {
-    onSelected(option) {
-      // eslint-disable-next-line no-console
-      console.log(option);
-      this.selected = option.item;
-    },
-    onInputChange(text) {
-      if (text === "" || text === undefined || text.length < 4) {
-        this.filteredOptions = [
-          {
-            data: ["Sedang Mencari Lokasi..."]
-          }
-        ];
-      } else {
-        let that = this;
-        this.search(text, that);
-      }
+    fetchResults(text) {
+      var that = this;
+      this.search(text, that);
     },
     search: _.debounce((text, that) => {
-      axios.get(`/api/${text}`).then(response => {
-        that.raw = response.data;
-        that.filteredOptions = [
+      axios.get(`http://localhost:8001/api/${text}`).then(response => {
+        that.filteredSuggestions = [
           {
-            data: []
+            data: response.data.data
           }
         ];
-        that.raw.forEach(item => {
-          that.filteredOptions[0].data.push(item.city);
-        });
+        console.log(that.filteredSuggestions);
       });
-    }, 1000)
+    }, 1000),
+    selectHandler(item) {
+      if (item) {
+        this.selected = item.item;
+      }
+    },
+    tabHandler() {
+      const {
+        listeners,
+        setCurrentIndex,
+        setChangeItem,
+        getItemByIndex
+      } = this.$refs.autosuggest;
+      setCurrentIndex(0);
+      setChangeItem(getItemByIndex(this.$refs.autosuggest.currentIndex), true);
+      this.$refs.autosuggest.loading = true;
+      listeners.selected(true);
+    },
+    clickHandler(item) {
+      this.loading = false;
+      this.fetchResults(item ? item.item.place : "");
+    },
+    getSuggestionValue(suggestion) {
+      const weather = suggestion.item;
+      return weather.place;
+    },
+    moment(info) {
+      return moment().format(info);
+    }
   }
 };
 </script>
